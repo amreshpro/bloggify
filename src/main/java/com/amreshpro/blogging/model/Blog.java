@@ -1,5 +1,6 @@
 package com.amreshpro.blogging.model;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 
 import org.bson.types.ObjectId;
@@ -29,7 +30,7 @@ public class Blog {
     @NonNull
     private String description;
 
-    private byte[] image;
+    private String imageUrl;
     private long imageLength;
 
     private LocalDateTime date;

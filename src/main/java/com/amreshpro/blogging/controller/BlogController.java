@@ -1,44 +1,58 @@
 package com.amreshpro.blogging.controller;
 
-import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.amreshpro.blogging.model.Blog;
-import com.amreshpro.blogging.service.BlogService;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-/**
- * BlogController
- */
+import com.amreshpro.blogging.model.Blog;
+import com.amreshpro.blogging.repository.BlogRepository;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
 @RestController
 @RequestMapping("/blog")
 public class BlogController {
-    BlogService blogService;
+    @Autowired
+    private BlogRepository blogRepository;
 
-    BlogController(BlogService blogService) {
-        this.blogService = blogService;
+    private final String IMAGE_DIRECTORY = "uploads"; // Specify your image directory
+
+    @PostMapping
+    public ResponseEntity<Blog> createBlog(
+        @RequestParam String title,
+        @RequestParam String description,
+        @RequestParam MultipartFile imageFile
+    ) {
+        String imageUrl = saveImageFile(imageFile);
+        Blog blog = new Blog();
+        blog.setTitle(title);
+        blog.setDescription(description);
+        blog.setImageUrl(imageUrl);
+        Blog savedBlog = blogRepository.save(blog);
+        return new ResponseEntity<>(savedBlog, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Blog>> getAllBlog() {
-        List<Blog> blogList = blogService.getAllBlog();
-        return blogList.isEmpty() ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(blogList, HttpStatus.CREATED);
+    public ResponseEntity<List<Blog>> getAllBlogs() {
+        List<Blog> blogs = blogRepository.findAll();
+        return new ResponseEntity<>(blogs, HttpStatus.OK);
     }
 
-    @PostMapping
-    public ResponseEntity<String> saveBlogEntry(Blog blog) {
-        Boolean isSaved = blogService.saveBlogEntry(blog);
-        if (isSaved) {
-            return new ResponseEntity<>("Blog saved Successfully", HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity<>("Failed to save blog", HttpStatus.NOT_ACCEPTABLE);
-
+    private String saveImageFile(MultipartFile imageFile) {
+        try {
+            String imagePath = IMAGE_DIRECTORY + File.separator + imageFile.getOriginalFilename();
+            Path path = Paths.get(imagePath);
+            Files.write(path, imageFile.getBytes());
+            return imagePath;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save image file: " + e.getMessage());
         }
     }
-
 }
